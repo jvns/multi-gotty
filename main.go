@@ -29,12 +29,18 @@ func main() {
 			Value: "8080",
 			Usage: "port to listen on",
 		},
+		cli.StringFlag{
+			Name:  "index-dir",
+			Value: "",
+			Usage: "directory to serve statics from",
+		},
 	}
 
 	cmd.Action = func(c *cli.Context) {
 		options := app.DefaultOptions
 		options.Address = c.String("address")
 		options.Port = c.String("port")
+		options.IndexFile = c.String("index-dir")
         options.PermitWrite = true
 		if len(c.Args()) != 1 {
 			fmt.Println("Error: No command given.\n")

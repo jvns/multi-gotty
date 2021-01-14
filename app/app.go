@@ -237,9 +237,6 @@ func (app *App) handleWS(command []string, w http.ResponseWriter, r *http.Reques
 }
 
 func (app *App) handleRequest(w http.ResponseWriter, r *http.Request) {
-	staticHandler := http.FileServer(
-		&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "static"},
-	)
 	path := r.URL.Path
 	parts := strings.Split(path, "/")
 	// TODO: this panics if the path doesn't have enough stuff in it
@@ -255,7 +252,13 @@ func (app *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 			app.handleWS(command, w, r)
 		}
 	} else {
-		http.StripPrefix(prefix, staticHandler).ServeHTTP(w, r)
+        handler := http.FileServer(
+            &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "static"},
+        )
+        if (app.options.IndexFile != "") {
+            handler = http.FileServer(http.Dir(app.options.IndexFile))
+        }
+        http.StripPrefix(prefix, handler).ServeHTTP(w, r)
 	}
 }
 
