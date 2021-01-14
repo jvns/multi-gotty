@@ -34,6 +34,11 @@ func main() {
 			Value: "",
 			Usage: "directory to serve statics from",
 		},
+		cli.StringFlag{
+			Name:  "ws-origin",
+			Value: "",
+			Usage: "directory to serve statics from",
+		},
 	}
 
 	cmd.Action = func(c *cli.Context) {
@@ -41,6 +46,7 @@ func main() {
 		options.Address = c.String("address")
 		options.Port = c.String("port")
 		options.IndexFile = c.String("index-dir")
+		options.WSOrigin = c.String("ws-origin")
         options.PermitWrite = true
 		if len(c.Args()) != 1 {
 			fmt.Println("Error: No command given.\n")

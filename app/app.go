@@ -44,6 +44,7 @@ type App struct {
 type Options struct {
 	Address             string                 `hcl:"address"`
 	Port                string                 `hcl:"port"`
+	WSOrigin            string                 `hcl:"allowed_origin"`
 	PermitWrite         bool                   `hcl:"permit_write"`
 	EnableBasicAuth     bool                   `hcl:"enable_basic_auth"`
 	Credential          string                 `hcl:"credential"`
@@ -72,6 +73,7 @@ type Options struct {
 var DefaultOptions = Options{
 	Address:             "",
 	Port:                "8080",
+    WSOrigin:            "http://127.0.0.1",
 	PermitWrite:         false,
 	EnableBasicAuth:     false,
 	Credential:          "",
@@ -103,6 +105,13 @@ func New(commandServer string, options *Options) (*App, error) {
 	}
 	connections := int64(0)
 
+	var originChecker func(r *http.Request) bool
+	if options.WSOrigin != "" {
+		originChecker = func(r *http.Request) bool {
+			return r.Header.Get("Origin") == options.WSOrigin
+		}
+    }
+
 	return &App{
 		options:       options,
 		commandServer: commandServer,
@@ -111,6 +120,7 @@ func New(commandServer string, options *Options) (*App, error) {
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
 			Subprotocols:    []string{"gotty"},
+			CheckOrigin:     originChecker,
 		},
 
 		titleTemplate: titleTemplate,
