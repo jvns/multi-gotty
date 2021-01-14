@@ -8,96 +8,42 @@ import (
 
 	"github.com/codegangsta/cli"
 
-	"github.com/yudai/gotty/app"
+	"github.com/jvns/multi-gotty/app"
 )
 
 func main() {
 	cmd := cli.NewApp()
 	cmd.Version = app.Version
-	cmd.Name = "gotty"
-	cmd.Usage = "Share your terminal as a web application"
+	cmd.Name = "multi-gotty"
+	cmd.Usage = "Share many terminals as a web application"
 	cmd.HideHelp = true
 
-	flags := []flag{
-		flag{"address", "a", "IP address to listen"},
-		flag{"port", "p", "Port number to listen"},
-		flag{"permit-write", "w", "Permit clients to write to the TTY (BE CAREFUL)"},
-		flag{"credential", "c", "Credential for Basic Authentication (ex: user:pass, default disabled)"},
-		flag{"random-url", "r", "Add a random string to the URL"},
-		flag{"random-url-length", "", "Random URL length"},
-		flag{"tls", "t", "Enable TLS/SSL"},
-		flag{"tls-crt", "", "TLS/SSL certificate file path"},
-		flag{"tls-key", "", "TLS/SSL key file path"},
-		flag{"tls-ca-crt", "", "TLS/SSL CA certificate file for client certifications"},
-		flag{"index", "", "Custom index.html file"},
-		flag{"title-format", "", "Title format of browser window"},
-		flag{"reconnect", "", "Enable reconnection"},
-		flag{"reconnect-time", "", "Time to reconnect"},
-		flag{"timeout", "", "Timeout seconds for waiting a client (0 to disable)"},
-		flag{"max-connection", "", "Maximum connection to gotty, 0(default) means no limit"},
-		flag{"once", "", "Accept only one client and exit on disconnection"},
-		flag{"permit-arguments", "", "Permit clients to send command line arguments in URL (e.g. http://example.com:8080/?arg=AAA&arg=BBB)"},
-		flag{"close-signal", "", "Signal sent to the command process when gotty close it (default: SIGHUP)"},
-		flag{"width", "", "Static width of the screen, 0(default) means dynamically resize"},
-		flag{"height", "", "Static height of the screen, 0(default) means dynamically resize"},
-	}
-
-	mappingHint := map[string]string{
-		"index":      "IndexFile",
-		"tls":        "EnableTLS",
-		"tls-crt":    "TLSCrtFile",
-		"tls-key":    "TLSKeyFile",
-		"tls-ca-crt": "TLSCACrtFile",
-		"random-url": "EnableRandomUrl",
-		"reconnect":  "EnableReconnect",
-	}
-
-	cliFlags, err := generateFlags(flags, mappingHint)
-	if err != nil {
-		exit(err, 3)
-	}
-
-	cmd.Flags = append(
-		cliFlags,
+	cmd.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:   "config",
-			Value:  "~/.gotty",
-			Usage:  "Config file path",
-			EnvVar: "GOTTY_CONFIG",
+			Name:  "address",
+			Value: "127.0.0.1",
+			Usage: "ip address to listen on",
 		},
-	)
+		cli.StringFlag{
+			Name:  "port",
+			Value: "8080",
+			Usage: "port to listen on",
+		},
+	}
 
 	cmd.Action = func(c *cli.Context) {
-		if len(c.Args()) == 0 {
+		options := app.DefaultOptions
+		options.Address = c.String("address")
+		options.Port = c.String("port")
+        options.PermitWrite = true
+		if len(c.Args()) != 1 {
 			fmt.Println("Error: No command given.\n")
 			cli.ShowAppHelp(c)
-			exit(err, 1)
+			exit(nil, 1)
 		}
+		commandServer := c.Args().Get(0)
 
-		options := app.DefaultOptions
-
-		configFile := c.String("config")
-		_, err := os.Stat(app.ExpandHomeDir(configFile))
-		if configFile != "~/.gotty" || !os.IsNotExist(err) {
-			if err := app.ApplyConfigFile(&options, configFile); err != nil {
-				exit(err, 2)
-			}
-		}
-
-		applyFlags(&options, flags, mappingHint, c)
-
-		if c.IsSet("credential") {
-			options.EnableBasicAuth = true
-		}
-		if c.IsSet("tls-ca-crt") {
-			options.EnableTLSClientAuth = true
-		}
-
-		if err := app.CheckConfig(&options); err != nil {
-			exit(err, 6)
-		}
-
-		app, err := app.New(c.Args(), &options)
+		app, err := app.New(commandServer, &options)
 		if err != nil {
 			exit(err, 3)
 		}

@@ -129,7 +129,6 @@ func (context *clientContext) write(data []byte) error {
 func (context *clientContext) sendInitialize() error {
 	hostname, _ := os.Hostname()
 	titleVars := ContextVars{
-		Command:    strings.Join(context.app.command, " "),
 		Pid:        context.command.Process.Pid,
 		Hostname:   hostname,
 		RemoteAddr: context.request.RemoteAddr,
