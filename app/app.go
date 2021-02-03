@@ -3,6 +3,7 @@ package app
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -73,7 +74,7 @@ type Options struct {
 var DefaultOptions = Options{
 	Address:             "",
 	Port:                "8080",
-    WSOrigin:            "http://127.0.0.1",
+	WSOrigin:            "http://127.0.0.1",
 	PermitWrite:         false,
 	EnableBasicAuth:     false,
 	Credential:          "",
@@ -110,7 +111,7 @@ func New(commandServer string, options *Options) (*App, error) {
 		originChecker = func(r *http.Request) bool {
 			return r.Header.Get("Origin") == options.WSOrigin
 		}
-    }
+	}
 
 	return &App{
 		options:       options,
@@ -260,15 +261,18 @@ func (app *App) handleRequest(w http.ResponseWriter, r *http.Request) {
 		mapping := app.readMapping()
 		if command, ok := mapping[id]; ok {
 			app.handleWS(command, w, r)
+		} else {
+			w.WriteHeader(500)
+			w.Write([]byte(fmt.Sprintf("didn't find proxy: %s", id)))
 		}
 	} else {
-        handler := http.FileServer(
-            &assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "static"},
-        )
-        if (app.options.IndexFile != "") {
-            handler = http.FileServer(http.Dir(app.options.IndexFile))
-        }
-        http.StripPrefix(prefix, handler).ServeHTTP(w, r)
+		handler := http.FileServer(
+			&assetfs.AssetFS{Asset: Asset, AssetDir: AssetDir, Prefix: "static"},
+		)
+		if app.options.IndexFile != "" {
+			handler = http.FileServer(http.Dir(app.options.IndexFile))
+		}
+		http.StripPrefix(prefix, handler).ServeHTTP(w, r)
 	}
 }
 
